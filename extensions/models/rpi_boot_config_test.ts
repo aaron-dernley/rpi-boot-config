@@ -2,8 +2,16 @@
 // catFile shell out to `cat` for /proc and /boot/firmware reads — see
 // rpi_health_test.ts / host_health_test.ts for why Deno's permission checker
 // requires it even for world-readable files.
-import { assert, assertEquals, assertThrows } from "jsr:@std/assert@1";
-import { createModelTestContext } from "jsr:@swamp-club/swamp-testing@0.20260824.32";
+import {
+  assert,
+  assertEquals,
+  assertRejects,
+  assertThrows,
+} from "jsr:@std/assert@1";
+import {
+  createModelTestContext,
+  withMockedCommand,
+} from "jsr:@swamp-club/swamp-testing@0.20260824.32";
 import {
   assertRaspberryPiHardware,
   decodeBootOrder,
@@ -247,6 +255,61 @@ Deno.test("readEeprom writes an eeprom resource from real rpi-eeprom-config outp
     );
     assert(data.bootOrderDecoded!.length > 0);
   }
+});
+
+Deno.test("readEeprom throws a clean error when rpi-eeprom-config exits non-zero with no output", async () => {
+  const { context } = createModelTestContext({
+    globalArgs: DEFAULT_GLOBAL_ARGS,
+    methodName: "readEeprom",
+  });
+
+  await assertRejects(
+    () =>
+      withMockedCommand((command) => {
+        if (command === "cat") {
+          return { stdout: "Raspberry Pi 5 Model B Rev 1.1\0", code: 0 };
+        }
+        return { stdout: "", stderr: "permission denied", code: 1 };
+      }, () => model.methods.readEeprom.execute({}, asContext(context))).then((
+        r,
+      ) => r.result),
+    Error,
+    "rpi-eeprom-config failed",
+  );
+});
+
+Deno.test("readEeprom warns and parses anyway when rpi-eeprom-config exits non-zero but still produced output", async () => {
+  const { context, getWrittenResources } = createModelTestContext({
+    globalArgs: DEFAULT_GLOBAL_ARGS,
+    methodName: "readEeprom",
+  });
+
+  const { result } = await withMockedCommand((command) => {
+    if (command === "cat") {
+      return { stdout: "Raspberry Pi 5 Model B Rev 1.1\0", code: 0 };
+    }
+    return { stdout: "[all]\nBOOT_ORDER=0xf461\n", stderr: "oddity", code: 1 };
+  }, () => model.methods.readEeprom.execute({}, asContext(context)));
+
+  assert(result.dataHandles.length === 1);
+  const data = getWrittenResources()[0].data as { bootOrderRaw: string | null };
+  assertEquals(data.bootOrderRaw, "0xf461");
+});
+
+Deno.test("readEeprom surfaces a clean not-found error when rpi-eeprom-config is not on PATH", async () => {
+  const { context } = createModelTestContext({
+    globalArgs: {
+      ...DEFAULT_GLOBAL_ARGS,
+      rpiEepromConfigPath: "/nonexistent/rpi-eeprom-config",
+    },
+    methodName: "readEeprom",
+  });
+
+  await assertRejects(
+    () => model.methods.readEeprom.execute({}, asContext(context)),
+    Error,
+    "not found on PATH",
+  );
 });
 
 Deno.test("readConfigTxt writes a configTxt resource with the raw file content preserved verbatim", async () => {
