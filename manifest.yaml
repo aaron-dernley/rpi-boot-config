@@ -1,0 +1,16 @@
+manifestVersion: 1
+name: "@aaronge/rpi-boot-config"
+version: "2026.08.26.1"
+description: "Raspberry Pi boot configuration drift detection — EEPROM bootloader settings (BOOT_ORDER, PSU_MAX_CURRENT, etc.), config.txt, and cmdline.txt as a typed, versioned Swamp model, built to catch boot-breaking drift before/after the NVMe SSD migration."
+
+repository: https://github.com/aaron-dernley/rpi-boot-config
+
+models:
+  - rpi_boot_config.ts
+
+additionalFiles:
+  - README.md
+  - LICENSE
+
+platforms:
+  - linux-aarch64
