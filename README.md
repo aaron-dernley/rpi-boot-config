@@ -28,11 +28,11 @@ swamp extension pull @aaronge/rpi-boot-config
 ## Usage
 
 ```sh
-swamp model create @aaronge/rpi-boot-config rpi-local
+swamp model create @aaronge/rpi-boot-config bootconfig-local
 
-swamp model method run rpi-local readEeprom
-swamp model method run rpi-local readConfigTxt
-swamp model method run rpi-local readCmdline
+swamp model method run bootconfig-local readEeprom
+swamp model method run bootconfig-local readConfigTxt
+swamp model method run bootconfig-local readCmdline
 ```
 
 Each method writes one resource: `eeprom`, `configTxt`, `cmdline`. Every
@@ -43,7 +43,7 @@ Reference the latest snapshot from a workflow assert step or another model:
 
 ```yaml
 expr: >-
-  data.latest("rpi-local", "cmdline").attributes.rootParam != null
+  data.latest("bootconfig-local", "cmdline").attributes.rootParam != null
 ```
 
 Compare against a specific prior version (e.g. before/after the NVMe
@@ -51,7 +51,7 @@ migration) with `data.version()`:
 
 ```yaml
 expr: >-
-  data.version("rpi-local", "cmdline", 1).attributes.rootParam
+  data.version("bootconfig-local", "cmdline", 1).attributes.rootParam
 ```
 
 ## Global arguments
@@ -92,7 +92,11 @@ Every method refuses to run on non-Pi hardware — checking
 
 ## Workflow
 
-The extension ships an `rpi-boot-config` workflow: a `collect` job runs all
+The workflow is listed under `workflows:` in `manifest.yaml`, so
+`swamp extension pull @aaronge/rpi-boot-config` installs it alongside the model. It
+expects a model instance named `bootconfig-local`.
+
+The extension ships an `@aaronge/rpi-boot-config` workflow: a `collect` job runs all
 three methods in parallel, an `assert` job checks that decoded `BOOT_ORDER`
 still contains every device named in the `expectedBootOrderDevices` input
 (defaulting to this machine's pre-migration order, `SD_CARD_BOOT` →

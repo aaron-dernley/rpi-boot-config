@@ -1,8 +1,8 @@
 id: f39b2744-755e-4275-af6d-9741b4f5c7ac
-name: rpi-boot-config
+name: "@aaronge/rpi-boot-config"
 description: >-
   Collect EEPROM bootloader settings, config.txt, and cmdline.txt from
-  rpi-local, and assert two low-frequency sanity checks: BOOT_ORDER still
+  bootconfig-local, and assert two low-frequency sanity checks: BOOT_ORDER still
   contains every device the operator expects to be tried, and cmdline.txt
   still names a root= device. Boot configuration changes rarely, so this
   runs once a day rather than every 5 minutes like the telemetry
@@ -38,19 +38,19 @@ jobs:
       - name: readEeprom
         task:
           type: model_method
-          modelIdOrName: rpi-local
+          modelIdOrName: bootconfig-local
           methodName: readEeprom
         dependsOn: []
       - name: readConfigTxt
         task:
           type: model_method
-          modelIdOrName: rpi-local
+          modelIdOrName: bootconfig-local
           methodName: readConfigTxt
         dependsOn: []
       - name: readCmdline
         task:
           type: model_method
-          modelIdOrName: rpi-local
+          modelIdOrName: bootconfig-local
           methodName: readCmdline
         dependsOn: []
 
@@ -67,10 +67,10 @@ jobs:
           type: assert
           expr: >-
             inputs.expectedBootOrderDevices.all(d,
-            d in data.latest("rpi-local", "eeprom").attributes.bootOrderDecoded)
+            d in data.latest("bootconfig-local", "eeprom").attributes.bootOrderDecoded)
           message: >-
-            BOOT_ORDER ${{ data.latest("rpi-local", "eeprom").attributes.bootOrderRaw }}
-            decodes to ${{ data.latest("rpi-local", "eeprom").attributes.bootOrderDecoded }},
+            BOOT_ORDER ${{ data.latest("bootconfig-local", "eeprom").attributes.bootOrderRaw }}
+            decodes to ${{ data.latest("bootconfig-local", "eeprom").attributes.bootOrderDecoded }},
             missing one of the expected devices ${{ inputs.expectedBootOrderDevices }} —
             a Pi that can't fall through to every expected boot device is one
             failed boot away from not coming back up.
@@ -81,7 +81,7 @@ jobs:
         task:
           type: assert
           expr: >-
-            data.latest("rpi-local", "cmdline").attributes.rootParam != null
+            data.latest("bootconfig-local", "cmdline").attributes.rootParam != null
           message: >-
             cmdline.txt has no root= parameter — this is the exact field the
             NVMe migration rewrites, so its total absence is worth failing on
@@ -106,9 +106,9 @@ jobs:
           methodName: execute
           inputs:
             run: >-
-              echo "rpi-boot-config: rpi-local" &&
-              echo "  BOOT_ORDER: ${{ data.latest('rpi-local', 'eeprom').attributes.bootOrderRaw }} -> ${{ data.latest('rpi-local', 'eeprom').attributes.bootOrderDecoded }}" &&
-              echo "  BOOT_UART=${{ data.latest('rpi-local', 'eeprom').attributes.bootUart }} POWER_OFF_ON_HALT=${{ data.latest('rpi-local', 'eeprom').attributes.powerOffOnHalt }} WAKE_ON_GPIO=${{ data.latest('rpi-local', 'eeprom').attributes.wakeOnGpio }} PSU_MAX_CURRENT=${{ data.latest('rpi-local', 'eeprom').attributes.psuMaxCurrentMa }}mA" &&
-              echo "  config.txt sections: ${{ data.latest('rpi-local', 'configTxt').attributes.sections }}" &&
-              echo "  cmdline root=: ${{ data.latest('rpi-local', 'cmdline').attributes.rootParam }}"
+              echo "rpi-boot-config: bootconfig-local" &&
+              echo "  BOOT_ORDER: ${{ data.latest('bootconfig-local', 'eeprom').attributes.bootOrderRaw }} -> ${{ data.latest('bootconfig-local', 'eeprom').attributes.bootOrderDecoded }}" &&
+              echo "  BOOT_UART=${{ data.latest('bootconfig-local', 'eeprom').attributes.bootUart }} POWER_OFF_ON_HALT=${{ data.latest('bootconfig-local', 'eeprom').attributes.powerOffOnHalt }} WAKE_ON_GPIO=${{ data.latest('bootconfig-local', 'eeprom').attributes.wakeOnGpio }} PSU_MAX_CURRENT=${{ data.latest('bootconfig-local', 'eeprom').attributes.psuMaxCurrentMa }}mA" &&
+              echo "  config.txt sections: ${{ data.latest('bootconfig-local', 'configTxt').attributes.sections }}" &&
+              echo "  cmdline root=: ${{ data.latest('bootconfig-local', 'cmdline').attributes.rootParam }}"
         dependsOn: []
