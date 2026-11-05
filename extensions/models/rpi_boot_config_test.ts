@@ -343,10 +343,15 @@ Deno.test("readCmdline writes a cmdline resource with rootParam matching the mac
     rootParam: string | null;
   };
   assert(data.raw.length > 0);
-  // Still SD-card-booted as of writing this test — before the NVMe
-  // migration. This assertion is expected to need updating once the
-  // migration happens; that's the point of the model.
-  assertEquals(data.rootParam, "PARTUUID=98ad41b8-02");
+  // Compare against the kernel's own view of the running root rather than
+  // a hardcoded PARTUUID: the original SD-card value (98ad41b8-02) went
+  // stale with the NVMe migration, which is exactly the change this model
+  // exists to catch.
+  const running = (await Deno.readTextFile("/proc/cmdline"))
+    .split(/\s+/)
+    .find((t) => t.startsWith("root="))
+    ?.slice("root=".length) ?? null;
+  assertEquals(data.rootParam, running);
 });
 
 Deno.test("assertRaspberryPiHardware strips the trailing NUL from /proc/device-tree/model on this real Pi 5", async () => {
