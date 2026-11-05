@@ -112,8 +112,10 @@ telemetry-focused `@aaronge/host-health`/`@aaronge/rpi-health` workflows.
 It intentionally does *not* check EEPROM firmware current-vs-latest (that's
 `@aaronge/rpi-health`'s `readFirmware`) or that `cmdline.txt`'s `root=`
 matches the filesystem `@aaronge/host-health` sees mounted at `/` — both are
-cross-model checks that belong in a future `pre-migration-snapshot`
-workflow, not duplicated into this extension's own.
+cross-model checks, not duplicated into this extension's own. The
+`pre-migration-snapshot` workflow in the `rpi-workflows` repo records both
+sides (cmdline, mounted filesystems, firmware status) for a manual
+before/after diff, but doesn't assert on them.
 
 ## License
 
